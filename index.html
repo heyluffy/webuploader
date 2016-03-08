@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<link rel="stylesheet" type="text/css" href="css/webuploader.css">
+	<style type="text/css">
+		*{
+			padding: 0px;
+			margin: 0px;
+		}
+		body{
+			font-family: "Myriad Pro", "Hiragino Sans GB","Microsoft YaHei","微软雅黑", Calibri, Helvetica, tahoma,arial,simsun,"宋体", sans-serif;
+		}
+		.my-uploader{
+			width: 1140px;
+			height: 458px;
+			margin: 0 auto;
+			
+		}
+		@media screen and (max-width: 1200px){
+			.my-uploader{
+				width: 100%;
+			}
+		}
+		.my-placeholder{
+			min-height: 350px;
+			padding-top: 178px;
+			background: url("images/upload.png") center 93px no-repeat;
+		}
+		.my-placeholder .btns{
+			width: 126px;
+			margin: 0 auto;
+		}
+		.my-placeholder .words{
+			height: 60px;
+			font-size: 18px;
+			line-height: 60px;
+			color: #777;
+			text-align: center;
+		}
+		.my-uploader .filelist li{
+			width: 110px;
+		    height: 110px;
+		    text-align: center;
+		    margin: 0 8px 20px 0;
+		    position: relative;
+		    display: inline;
+		    float: left;
+		    overflow: hidden;
+		    font-size: 12px;
+		}
+		.my-uploader .filelist li p.title {
+		    position: absolute;
+		    top: 0;
+		    left: 0;
+		    width: 100%;
+		    overflow: hidden;
+		    white-space: nowrap;
+		    text-overflow: ellipsis;
+		    top: 5px;
+		    text-indent: 5px;
+		    text-align: left;
+		}
+		#uploader .filelist li p.imgWrap{
+		    position: relative;
+		    z-index: 2;
+		    line-height: 110px;
+		    vertical-align: middle;
+		    overflow: hidden;
+		    width: 110px;
+		    height: 110px;
+		    -webkit-transform-origin: 50% 50%;
+		    -moz-transform-origin: 50% 50%;
+		    -o-transform-origin: 50% 50%;
+		    -ms-transform-origin: 50% 50%;
+		    transform-origin: 50% 50%;
+		    -webit-transition: 200ms ease-out;
+		    -moz-transition: 200ms ease-out;
+		    -o-transition: 200ms ease-out;
+		    -ms-transition: 200ms ease-out;
+		    transition: 200ms ease-out;
+		 }
+		.my-uploader .filelist li .file-panel{
+			position: absolute;
+		    height: 0;
+		    filter: progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='#80000000', endColorstr='#80000000')\0;
+		    background: rgba( 0, 0, 0, 0.5 );
+		    width: 100%;
+		    top: 0;
+		    left: 0;
+		    overflow: hidden;
+		    z-index: 300;
+		}	
+		.my-uploader .filelist div.file-panel span {
+		    width: 24px;
+		    height: 24px;
+		    display: inline;
+		    float: right;
+		    text-indent: -9999px;
+		    overflow: hidden;
+		    background: url(images/icons.png) no-repeat;
+		    margin: 5px 1px 1px;
+		    cursor: pointer;
+		}
+		.my-uploader .filelist div.file-panel span.rotateRight {
+    		background-position: -24px -24px;
+		}	
+		.my-uploader .filelist div.file-panel span.rotateLeft {
+    		background-position: 0 -24px;
+		}
+		.my-uploader .filelist div.file-panel span.cancel {
+    		background-position: -48px -24px;
+		}
+	</style>
+</head>
+<body>
+<div id="uploader" class="my-uploader">
+    <!--用来存放文件信息-->
+    <div class="my-queuelist">
+	    <div id="dndArea" class="my-placeholder">   		
+		    <div class="btns">
+		        <div id="picker">点击选择图片</div>
+		    </div>
+		    <p class="words">或将照片拖到这里，单次最多可选300张</p>
+	    </div>
+	    <ul class="filelist">
+	    </ul>
+    </div>
+</div>
+</body>
+<!--引入JS-->
+<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="js/webuploader.min.js"></script>
+<script type="text/javascript">
+$(document).on("ready", function(){
+
+	var $queue = $(".filelist");
+
+    // 优化retina, 在retina下这个值是2
+   	ratio = window.devicePixelRatio || 1,
+
+    // 缩略图大小
+    thumbnailWidth = 110 * ratio,
+    thumbnailHeight = 110 * ratio,
+
+    //存放每个文件信息
+    percentages = {},
+
+    supportTransition = (function(){
+            var s = document.createElement('p').style,
+                r = 'transition' in s ||
+                      'WebkitTransition' in s ||
+                      'MozTransition' in s ||
+                      'msTransition' in s ||
+                      'OTransition' in s;
+            s = null;            
+            return r;
+        })();
+
+	var uploader = WebUploader.create({
+
+	    // swf文件路径
+	    swf: 'js/Uploader.swf',
+
+	    // 文件接收服务端。
+	    server: 'http://webuploader.duapp.com/server/fileupload.php',
+
+	    // 选择文件的按钮。可选。
+	    // 内部根据当前运行是创建，可能是input元素，也可能是flash.
+	    pick: '#picker',
+
+	    //压缩图片
+	    compress: {
+	    	width: 300,
+	    	height: 300,
+	    	// 图片质量，只有type为`image/jpeg`的时候才有效。
+	    	quality: 60
+	    },
+	    //定义拖拽的容器
+        dnd: '#uploader .my-queuelist',
+
+        //paste事件的容器，通过粘贴来添加图片
+        paste: document.body,
+
+        accept: {
+            title: 'Images',
+            extensions: 'gif,jpg,jpeg,bmp,png',
+            mimeTypes: 'image/*'
+        },
+
+        //是否取消整个页面的拖拽功能，如果不取消则图片拖进来的时候会被浏览器默认打开
+        disableGlobalDnd: true,
+
+        chunked: true,
+
+        //队列中最大的文件总数
+        fileNumLimit: 300,
+
+        //队列最大的总文件大小
+        fileSizeLimit: 5 * 1024 * 1024,    // 200 M
+
+        //队列中最大的单个文件大小
+        fileSingleSizeLimit: 1 * 1024 * 1024    // 50 M
+	});
+
+	// 当有文件添加进来时执行，负责view的创建
+    function addFile( file ) {
+        var $li = $( '<li id="' + file.id + '">' +
+                '<p class="title">' + file.name + '</p>' +
+                '<p class="imgWrap"></p>'+
+                '<p class="progress"><span></span></p>' +
+                '</li>' ),
+
+            $btns = $('<div class="file-panel">' +
+                '<span class="cancel">删除</span>' +
+                '<span class="rotateRight">向右旋转</span>' +
+                '<span class="rotateLeft">向左旋转</span></div>').appendTo( $li ),
+            $prgress = $li.find('p.progress span'),
+            $wrap = $li.find( 'p.imgWrap' ),
+            $info = $('<p class="error"></p>'),
+
+            showError = function(code){
+            	switch(code){
+            		case 'exceed_size':
+            			text =  '文件大小超出';
+            			break;
+            		case 'interrupt':
+            			text = '上传暂停';
+            			break;
+            		default: 
+            			text = '上传失败，请重试'
+            	}
+
+            	$info = $('<p class="error"></p>');
+            	$info.text(text).appendTo($li);
+            };
+        if ( file.getStatus() === 'invalid' ) {
+            showError( file.statusText );
+        } else {
+            // @todo lazyload
+            $wrap.text( '预览中' ); 
+            uploader.makeThumb( file, function( error, src ) {
+                if ( error ) {
+                    $wrap.text( '不能预览' );
+                    return;
+                }
+
+                var img = $('<img src="'+src+'">');
+                $wrap.empty().append( img );
+            }, thumbnailWidth, thumbnailHeight );
+
+            percentages[ file.id ] = [ file.size, 0 ];
+            file.rotation = 0;
+        }
+
+        file.on('statuschange', function( cur, prev ) {
+            if ( prev === 'progress' ) {
+                $prgress.hide().width(0);
+            } else if ( prev === 'queued' ) {
+                $li.off( 'mouseenter mouseleave' );
+                $btns.remove();
+            }
+
+            // 成功
+            if ( cur === 'error' || cur === 'invalid' ) {
+                console.log( file.statusText );
+                showError( file.statusText );
+                percentages[ file.id ][ 1 ] = 1;
+            } else if ( cur === 'interrupt' ) {
+                showError( 'interrupt' );
+            } else if ( cur === 'queued' ) {
+                percentages[ file.id ][ 1 ] = 0;
+            } else if ( cur === 'progress' ) {
+                $info.remove();
+                $prgress.css('display', 'block');
+            } else if ( cur === 'complete' ) {
+                $li.append( '<span class="success"></span>' );
+            }
+
+            $li.removeClass( 'state-' + prev ).addClass( 'state-' + cur );
+        });
+
+        $li.on( 'mouseenter', function() {
+            $btns.stop().animate({height: 30});
+        });
+
+        $li.on( 'mouseleave', function() {
+            $btns.stop().animate({height: 0});
+        });
+
+        $btns.on( 'click', 'span', function() {
+            var index = $(this).index(),
+                deg;
+
+            switch ( index ) {
+                case 0:
+                    removeFile( file );
+                    return;
+
+                case 1:
+                    file.rotation += 90;
+                    break;
+
+                case 2:
+                    file.rotation -= 90;
+                    break;
+            }
+
+            if ( supportTransition ) {
+                deg = 'rotate(' + file.rotation + 'deg)';
+                $wrap.css({
+                    '-webkit-transform': deg,
+                    '-mos-transform': deg,
+                    '-o-transform': deg,
+                    'transform': deg
+                });
+            } else {
+                $wrap.css( 'filter', 'progid:DXImageTransform.Microsoft.BasicImage(rotation='+ (~~((file.rotation/90)%4 + 4)%4) +')');
+                // use jquery animate to rotation
+                // $({
+                //     rotation: rotation
+                // }).animate({
+                //     rotation: file.rotation
+                // }, {
+                //     easing: 'linear',
+                //     step: function( now ) {
+                //         now = now * Math.PI / 180;
+
+                //         var cos = Math.cos( now ),
+                //             sin = Math.sin( now );
+
+                //         $wrap.css( 'filter', "progid:DXImageTransform.Microsoft.Matrix(M11=" + cos + ",M12=" + (-sin) + ",M21=" + sin + ",M22=" + cos + ",SizingMethod='auto expand')");
+                //     }
+                // });
+            }
+
+
+        });
+
+        $li.appendTo( $queue );
+    }
+    // 负责view的销毁
+    function removeFile( file ) {
+        var $li = $('#'+file.id);
+
+        delete percentages[ file.id ];
+        updateTotalProgress();
+        $li.off().find('.file-panel').off().end().remove();
+    }
+
+    function updateTotalProgress() {
+        var loaded = 0,
+            total = 0,
+            // spans = $progress.children(),
+            percent;
+
+        $.each( percentages, function( k, v ) {
+            total += v[ 0 ];
+            loaded += v[ 0 ] * v[ 1 ];
+        } );
+
+        percent = total ? loaded / total : 0;
+
+        spans.eq( 0 ).text( Math.round( percent * 100 ) + '%' );
+        spans.eq( 1 ).css( 'width', Math.round( percent * 100 ) + '%' );
+        updateStatus();
+    }
+      
+
+    //当文件被加入队列以后触发
+   	uploader.onFileQueued = function( file ) {
+        console.log(WebUploader.formatSize(file.size));
+        addFile( file );
+    };
+})
+
+</script>
+</html>
